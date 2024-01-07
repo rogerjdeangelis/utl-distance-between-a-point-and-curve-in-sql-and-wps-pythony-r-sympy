@@ -1,0 +1,412 @@
+%let pgm =utl-distance-between-a-point-and-curve-in-sql-and-wps-pythony-r-sympy;
+
+Distance between a point and a curve in python
+
+github
+http://tinyurl.com/mr2jyp79
+https://github.com/rogerjdeangelis/utl-distance-between-a-point-and-curve-in-sql-and-wps-pythony-r-sympy
+
+stackoverflow
+http://tinyurl.com/2p85ms9p
+https://stackoverflow.com/questions/67490884/distance-between-a-point-and-a-curve-in-python
+
+This is not as trivial as it seems. I am solving very special case.
+
+If the point is arbitrary or we have a high order polynomial then
+there can be mutiple 'roots', even complex roots. Many equal function points.
+
+Sql can be useful to inital regions?
+Looks like a one off so what it sql is slow?
+
+This works with points other than the origin
+
+    SOLUTIONS
+
+        1 wps sql
+        2 wps sql r
+        3 wps python sql
+        4 wps python scipy
+          arbitrary point(nor tested)
+        5.wps r & sympy
+         for faster convergence I used the symbolic first derivative from sympy (4.)
+
+/*                   _
+(_)_ __  _ __  _   _| |_
+| | `_ \| `_ \| | | | __|
+| | | | | |_) | |_| | |_
+|_|_| |_| .__/ \__,_|\__|
+        |_|
+*/
+
+options validvarname=upcase;
+libname sd1 "d:/sd1";
+data sd1.have;
+
+  do x=.1 to .9 by .05;
+     y=  x**(-.25) * (1 - x**2)**(-.25) - 1.27;
+     dis= x**2 + y**2;
+     ltr=put(100*dis,2.);
+    output;
+  end;
+  stop;
+
+run;quit;
+
+/**************************************************************************************************************************/
+/*                                                                                                                        */
+/* Obs      X        Y         DIS                                                                                        */
+/*                                                                                                                        */
+/*   1    0.10    0.51275    0.27292                                                                                      */
+/*   2    0.15    0.34602    0.14223                                                                                      */
+/*   3    0.20    0.24069    0.09793                                                                                      */
+/*                                                                                                                        */
+/*   4    0.25    0.16722    0.09046   This is the closest                                                                */
+/*                                                                                                                        */
+/*   5    0.30    0.11344    0.10287                                                                                      */
+/*   6    0.35    0.07329    0.12787                                                                                      */
+/*   7    0.40    0.04345    0.16189                                                                                      */
+/*   8    0.45    0.02201    0.20298                                                                                      */
+/*   9    0.50    0.00789    0.25006                                                                                      */
+/*  10    0.55    0.00064    0.30250                                                                                      */
+/*  11    0.60    0.00033    0.36000                                                                                      */
+/*  12    0.65    0.00757    0.42256                                                                                      */
+/*  13    0.70    0.02370    0.49056                                                                                      */
+/*  14    0.75    0.05127    0.56513                                                                                      */
+/*  15    0.80    0.09506    0.64904                                                                                      */
+/*  16    0.85    0.16493    0.74970                                                                                      */
+/*  17    0.90    0.28507    0.89127                                                                                      */
+/*                                                                                                                        */
+/*                                                                                                                        */
+/*  options ls=64 ps=28;                                                                                                  */
+/*  proc plot data=sd1.have;                                                                                              */
+/*    plot y*x='*' $ ltr /box vaxis=10 to .25 by .05 ;                                                                    */
+/*  run;quit;                                                                                                             */
+/*                                                                                                                        */
+/*        Plot of Beta like function with ditances from origin                                                            */
+/*                                                                                                                        */
+/*  Y   0.00     0.15     0.30     0.45     0.60     0.75     0.90                                                        */
+/*      --+--------+--------+--------+--------+--------+--------+---                                                      */
+/*  0.6 +                                                          + 0.6                                                  */
+/*      |Distance from origin to x**(-.25)*(1- x**2)**(-.25)- 1.27 |                                                      */
+/*      |                                                          |                                                      */
+/*      |       *.27    Minimize  x**2 + y**2                      |                                                      */
+/*      |                                                          |                                                      */
+/*      |        \                                                 |                                                      */
+/*  0.4 +                                                          + 0.4                                                  */
+/*      |         \                                                |                                                      */
+/*      |          *.14  Distances squared sqrt(.14)=.37 actual    |                                                      */
+/*    Y |           \                                        89.*  |   Y                                                  */
+/*      |            \                                         .   |                                                      */
+/*      |             *.10  sqrt(.14)=.32 actual distance     /    |                                                      */
+/*  0.2 +                                                    .     + 0.2                                                  */
+/*      |              .*.09 (0.25,0.17) MINIMUM =.30       *.75   |                                                      */
+/*      |            .*                  ============      /       |                                                      */
+/*      |          .*        *.10                         *.65     |                                                      */
+/*      |        .*            *.13                    *.57        |                                                      */
+/*      |     ,*`  ,30 length     *                 *.49           |                                                      */
+/*  0.0 +   .*                      *25 *  *  *  *.42              + 0.0                                                  */                                                                       */
+/*      | *`                          .20 .30.36                   |                                                      */                                                                       */
+/*      --+--------+--------+--------+--------+--------+--------+---                                                      */                                                                       */
+/*      0.00     0.15     0.30     0.45     0.60     0.75     0.90                                                        */                                                                       */
+/*                                                                                                                        */                                                                       */
+/*                                X                                                                                       */                                                                       */
+/*                                                                                                                        */                                                                       */
+/**************************************************************************************************************************/
+
+                   sqrt(.10)
+/*                                  _
+/ | __      ___ __  ___   ___  __ _| |
+| | \ \ /\ / / `_ \/ __| / __|/ _` | |
+| |  \ V  V /| |_) \__ \ \__ \ (_| | |
+|_|   \_/\_/ | .__/|___/ |___/\__, |_|
+             |_|                 |_|
+*/
+
+
+proc datasets lib=sd1 nolist mt=data mt=view nodetails;delete want; run;quit;
+
+%utl_submit_wps64x('
+libname sd1 "d:/sd1";
+options validvarname=any;
+proc sql;
+  create
+    table sd1.want as
+  select
+    x
+   ,y
+   ,(x**2 + y**2) as dis
+  from
+    sd1.have
+  having
+    (x**2 + y**2) = min(x**2 + y**2)
+;
+quit;
+');
+
+proc print data=sd1.want;
+run;quit;
+
+/**************************************************************************************************************************/
+/*                                                                                                                        */
+/* Obs      X        Y         DIS(Squared closest)                                                                       */
+/*                                                                                                                        */
+/*  1     0.25    0.16722    0.090461                                                                                     */
+/*                                                                                                                        */
+/**************************************************************************************************************************/
+
+
+/*___
+|___ \  __      ___ __  ___   _ __
+  __) | \ \ /\ / / `_ \/ __| | `__|
+ / __/   \ V  V /| |_) \__ \ | |
+|_____|   \_/\_/ | .__/|___/ |_|
+                 |_|
+*/
+
+/*----                                                                   ----*/
+/*----  WPS/SAS returns all values with this sql script                  ----*/
+/*----  SQDF does not support exponentiation functions ^ ** use power     ---*/
+/*----                                                                   ----*/
+
+proc datasets lib=sd1 nolist nodetails;delete want; run;quit;
+
+options validvarname=any;
+libname sd1 "d:/sd1";
+
+%utl_submit_wps64x('
+libname sd1 "d:/sd1";
+proc r;
+export data=sd1.have r=have;
+submit;
+library(sqldf);
+want<-sqldf("
+  select
+    x
+   ,y
+   ,min(power(x,2) + power(y,2)) as dis
+  from
+    have
+");
+want;
+endsubmit;
+import data=sd1.want r=want;
+run;quit;
+');
+
+proc print data=sd1.want width=min;
+run;quit;
+
+/**************************************************************************************************************************/
+/*                                                                                                                        */
+/* Obs      X        Y     DIS(closest Squared)                                                                           */
+/*                                                                                                                        */
+/*  1     0.25    0.16722    0.090461                                                                                     */
+/*                                                                                                                        */
+/**************************************************************************************************************************/
+
+/*____                                    _   _
+|___ /  __      ___ __  ___   _ __  _   _| |_| |__   ___  _ __
+  |_ \  \ \ /\ / / `_ \/ __| | `_ \| | | | __| `_ \ / _ \| `_ \
+ ___) |  \ V  V /| |_) \__ \ | |_) | |_| | |_| | | | (_) | | | |
+|____/    \_/\_/ | .__/|___/ | .__/ \__, |\__|_| |_|\___/|_| |_|
+                 |_|         |_|    |___/
+*/
+
+
+proc datasets lib=sd1 nolist nodetails;delete want; run;quit;
+
+%utl_submit_wps64x("
+options validvarname=any lrecl=32756;
+libname sd1 'd:/sd1';
+proc python;
+export data=sd1.have python=have;
+submit;
+import pyreadstat;
+from os import path;
+import pandas as pd;
+import numpy as np;
+from pandasql import sqldf;
+mysql = lambda q: sqldf(q, globals());
+from pandasql import PandaSQL;
+pdsql = PandaSQL(persist=True);
+want = pdsql('''
+  select
+    x
+   ,y
+   ,min(power(x,2) + power(y,2)) as dis
+  from
+    have
+''');
+print(want);
+pyreadstat.write_xport(want, 'd:/xpt/want.xpt',table_name='want',file_format_version=5);
+endsubmit;
+run;quit;
+");
+
+libname xpt xport "d:/xpt/want.xpt";
+proc contents data=xpt._all_;
+run;quit;
+data want;
+  set xpt.want;
+run;quit;
+proc print;
+run;quit;
+
+/**************************************************************************************************************************/
+/*                                                                                                                        */
+/*  The WPS System                                                                                                        */
+/*                                                                                                                        */
+/*  The PYTHON Procedure                                                                                                  */
+/*                                                                                                                        */
+/*        X         Y       dis                                                                                           */
+/*  0  0.25  0.167216  0.090461                                                                                           */
+/*                                                                                                                        */
+/*  Obs      X        Y          dis                                                                                      */
+/*                                                                                                                        */
+/*   1     0.25    0.16722    0.090461                                                                                    */
+/*                                                                                                                        */
+/**************************************************************************************************************************/
+
+/*  _                                                 _
+| || |   __      ___ __  ___   _ __  _   _   ___  ___(_)_ __  _   _
+| || |_  \ \ /\ / / `_ \/ __| | `_ \| | | | / __|/ __| | `_ \| | | |
+|__   _|  \ V  V /| |_) \__ \ | |_) | |_| | \__ \ (__| | |_) | |_| |
+   |_|     \_/\_/ | .__/|___/ | .__/ \__, | |___/\___|_| .__/ \__, |
+                  |_|         |_|    |___/             |_|    |___/
+*/
+
+%utl_submit_wps64x("
+proc python;
+submit;
+import pyreadstat;
+from os import path;
+import pandas as pd;
+import numpy as np;
+from pandasql import sqldf;
+mysql = lambda q: sqldf(q, globals());
+from pandasql import PandaSQL;
+pdsql = PandaSQL(persist=True);
+from scipy.signal import argrelmin;
+x = np.linspace(.1, .9, 17);
+def distance(x):;
+.   xx = x;
+.   dis = np.sqrt(xx**2 + (xx**(-.25) * (1 - xx**2)**(-.25) -1.27 )**2);
+.   return dis;
+dis = distance(x);
+min_idxs = argrelmin(dis)[0];
+print(min_idxs);
+glob_min_idx = min_idxs[np.argmin(dis[min_idxs])];
+print(glob_min_idx);
+min_x= x[glob_min_idx];
+min_y= min_x**(-.25) * (1 - min_x**2)**(-.25) -1.27;
+min_d= dis[glob_min_idx]*dis[glob_min_idx];
+want=pd.DataFrame([[min_x,min_y,min_d]],columns=['min_x','min_y','min_d']);
+print(want);
+pyreadstat.write_xport(want, 'd:/xpt/want.xpt',table_name='want',file_format_version=5);
+endsubmit;
+run;quit;
+");
+
+libname xpt xport "d:/xpt/want.xpt";
+proc contents data=xpt._all_;
+run;quit;
+data want;
+  set xpt.want;
+run;quit;
+proc print;
+run;quit;
+
+
+/**************************************************************************************************************************/
+/*                                                                                                                        */
+/*  The WPS System                                                                                                        */
+/*                                                                                                                        */
+/*  The PYTHON Procedure                                                                                                  */
+/*                                                                                                                        */
+/*     min_x     min_y     min_d                                                                                          */
+/*  0   0.25  0.167216  0.090461                                                                                          */
+/*                                                                                                                        */
+/* Obs    MIN_X     MIN_Y       MIN_D                                                                                     */
+/*                                                                                                                        */
+/*  1      0.25    0.16722    0.090461                                                                                    */
+/*                                                                                                                        */
+/**************************************************************************************************************************/
+
+/*___                                 ___                 _   _
+| ___|  __      ___ __  ___   _ __   ( _ )    _ __  _   _| |_| |__   ___  _ __
+|___ \  \ \ /\ / / `_ \/ __| | `__|  / _ \/\ | `_ \| | | | __| `_ \ / _ \| `_ \
+ ___) |  \ V  V /| |_) \__ \ | |    | (_>  < | |_) | |_| | |_| | | | (_) | | | |
+|____/    \_/\_/ | .__/|___/ |_|     \___/\/ | .__/ \__, |\__|_| |_|\___/|_| |_|
+                 |_|                         |_|    |___/
+*/
+
+
+/*----                                                                   ----*/
+/*----  Use this to get the first derivarive of distance function        ----*/
+/*----  x**2 + (x**(-.25) * (1 - x**2)**(-.25) - 1.27)**2;               ----*/
+/*----  Slope=0                                                          ----*/
+/*----                                                                   ----*/
+
+%utl_submit_wps64x("
+proc python;
+submit;
+from sympy import *;
+x=symbols('x',real=True);
+fun=x**2 + (x**(-.25) * (1 - x**2)**(-.25) - 1.27)**2;
+d1 = diff(fun, x);
+print(d1);
+d2 = diff(d1, x);
+print(d2);
+endsubmit;
+");
+
+ f`(x) = 2.0*x + 1.6129*(-0.393700787401575/(x^1.25*(1.0 - x^2)^0.25) + 0.78740157480315*x^0.75/
+    (1.0 - x^2)^1.25)*(0.78740157480315/(x^0.25*(1.0 - x^2)^0.25) - 1.0)
+
+/*----                                                                   ----*/
+/*---- Past the first derivative in the R script below                   ----*/
+/*----                                                                   ----*/
+
+%utl_submit_wps64x('
+libname sd1 "d:/sd1";
+proc r;
+export data=sd1.have r=have;
+submit;
+fun <- function(x) {2.0*x + 1.6129*(-0.393700787401575/(x^1.25*(1.0 - x^2)^0.25) + 0.78740157480315*x^0.75/
+    (1.0 - x^2)^1.25)*(0.78740157480315/(x^0.25*(1.0 - x^2)^0.25) - 1.0)};
+x<-uniroot(fun, lower = .1, upper = .6)$root;
+y<-x^(-.25) * (1.0 - x^2)^(-.25) - 1.27;
+disSqr=x^2 + y^2;
+want<-as.data.frame(t(as.data.frame(c(x,y,disSqr))));
+colnames(want)=c("x","y","disSqr");
+str(want);
+want;
+endsubmit;
+import data=sd1.want r=want;
+');
+
+proc print data=sd1.want;
+run;quit;
+
+/**************************************************************************************************************************/
+/*                                                                                                                        */
+/*  WPS R  Iterates over a finer grid so the result is more accurate                                                      */
+/*                                                                                                                        */
+/*                          x         y     disSqr                                                                        */
+/*  c(x, y, disSqr) 0.2397009 0.1804649 0.09002412                                                                        */
+/*                                                                                                                        */
+/*  WPS                                                                                                                   */
+/*                                                                                                                        */
+/*  Obs       X          Y        DISSQR                                                                                  */
+/*                                                                                                                        */
+/*   1     0.23970    0.18046    0.090024                                                                                 */
+/*                                                                                                                        */
+/*                                                                                                                        */
+/**************************************************************************************************************************/
+/*              _
+  ___ _ __   __| |
+ / _ \ `_ \ / _` |
+|  __/ | | | (_| |
+ \___|_| |_|\__,_|
+
+*/
